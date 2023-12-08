@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Booking</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .slider {
+            appearance: none;
+            width: 100%;
+            height: 15px;
+            border-radius: 5px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg mt-10">
+        <h1 class="text-xl font-bold mb-4">Agende sua acompanhante hoje!</h1>
+        <div class="mb-4">
+            <label for="companion" class="block text-gray-700 text-sm font-bold mb-2">Acompanhante</label>
+            <select id="companion" class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                <!-- Opções serão preenchidas dinamicamente aqui -->
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Qual seu nome?</label>
+            <input type="text" id="name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="nome">
+        </div>
+        <div class="mb-4">
+            <label for="date" class="block text-gray-700 text-sm font-bold mb-2">Dia</label>
+            <input type="date" id="date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+            <label for="time" class="block text-gray-700 text-sm font-bold mb-2">Hora Início</label>
+            <input type="time" id="time" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+            <label for="hours" class="block text-gray-700 text-sm font-bold mb-2">Número de Horas</label>
+            <input type="range" id="hours" class="slider" min="1" max="5" value="1" oninput="updatePrice()">
+        </div>
+        <div class="mb-4">
+            <label for="price" class="block text-gray-700 text-sm font-bold mb-2">Preço</label>
+            <input type="text" id="price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="preço" readonly>
+        </div>
+        <div class="flex items-center justify-between">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button" onclick="help()">Ajuda</button>
+            <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button" onclick="salvarReserva()">Marcar</button>
+        </div>
+    </div>
+
+    <script>
+        function updatePrice() {
+            const hours = document.getElementById('hours').value;
+            const price = hours * 40;
+            document.getElementById('price').value = `R$ ${price}`;
+        }
+
+        function help() {
+            alert('Para ajuda, entre em contato com o suporte.');
+        }
+
+        function salvarReserva() {
+            const companionId = document.getElementById('companion').value;
+            const name = document.getElementById('name').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const hours = document.getElementById('hours').value;
+
+            const dateTimeString = `${document.getElementById('date').value}T${time}:00.000Z`;
+
+            const dateTime = new Date(dateTimeString);
+
+            const reservaData = {
+                cliente: { id: 1 }, // Substitua pelo cliente correto ou obtenha dinamicamente
+                acompanhante: { id: companionId },
+                servico: { id: 1 }, // Substitua pelo serviço correto ou obtenha dinamicamente
+                dataReserva: date,
+                horaInicio: dateTime.toISOString(),
+                horaFim: hours
+            };
+
+            fetch('http://localhost:8080/reserva/salvar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(reservaData)
+            })
+            .then(response => response.json())
+            .then(resposta => {
+                console.log('Reserva salva com sucesso:', resposta);
+                alert('Reserva salva com sucesso!');
+            })
+            .catch(error => {
+                console.error('Erro ao salvar a reserva:', error);
+                alert('Erro ao salvar a reserva. Consulte o console para mais detalhes.');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Função para preencher dinamicamente as opções do <select>
+            function preencherAcompanhantes() {
+                fetch('http://localhost:8080/acompanhante')
+                    .then(response => response.json())
+                    .then(acompanhantes => {
+                        const select = document.getElementById('companion');
+
+                        // Limpa as opções existentes
+                        select.innerHTML = '';
+
+                        // Adiciona as novas opções
+                        acompanhantes.forEach(acompanhante => {
+                            const option = document.createElement('option');
+                            option.value = acompanhante.id; // Use o identificador do acompanhante
+                            option.textContent = acompanhante.nome; // Substitua por como você armazena o nome
+                            select.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao obter a lista de acompanhantes:', error);
+                    });
+            }
+
+            // Chama a função para preencher as opções quando a página é carregada
+            preencherAcompanhantes();
+
+            // Inicialize o preço
+            updatePrice();
+        });
+    </script>
+</body>
+</html>
